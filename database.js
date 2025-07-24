@@ -135,6 +135,55 @@ router.get('/accessIds_for_location', async (req, res) => {
     }
 });
 
+router.get('/schema', async (req, res) => {
+  console.log('📨 Schema endpoint hit!'); // This should now show
+  console.log('🔧 Request path:', req.path);
+  console.log('🔧 Request URL:', req.url);
+  
+  try {
+    console.log('🔗 Attempting to connect to database...');
+    await sql.connect(config);
+    console.log('✅ Connected to database successfully');
+
+    //Get all table names
+    const tablesResult = await sql.query(`
+      SELECT TABLE_NAME
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_TYPE = 'BASE TABLE'
+    `);
+
+    const tableNames = tablesResult.recordset.map(row => row.TABLE_NAME);
+
+    const allSchemas = {};
+
+    // Loop through tables and get column info
+    for (const tableName of tableNames) {
+      const columnsResult = await sql.query(`
+        SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_NAME = '${tableName}'
+      `);
+
+      allSchemas[tableName] = columnsResult.recordset;
+    }
+
+    res.json({
+      schema: allSchemas
+    });
+  } catch (err) {
+    console.error('💥 Connection failed:', err.message);
+    console.error('💥 Full error:', err);
+    res.status(500).json({ 
+      error: 'Database connection failed', 
+      details: err.message,
+      code: err.code 
+    });
+    return;
+  } finally {
+    await sql.close();
+  }
+});
+
 
 
 
