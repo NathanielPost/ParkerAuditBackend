@@ -127,7 +127,8 @@ router.get('/accessIds_for_location', async (req, res) => {
         console.error(`💥 ERROR STACK:`, error.stack);
         res.status(500).json({
             error: 'Database query failed',
-            details: error.message
+            details: error.message,
+            stack: error.stack
         });
     } finally {
         await sql.close();
