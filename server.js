@@ -29,7 +29,12 @@ app.get('/api/healthcheck', async (req, res) => {
     res.json({ success: true, time: result.recordset[0].time });
   } catch (err) {
     console.error('DB connection failed:', err);
-    res.status(500).json({ success: false, error: 'Database connection failed' });
+    res.status(500).json({ 
+      success: false, 
+      error: 'Database connection failed',
+      details: err.message,
+      code: err.code
+    });
   }
 });
 
