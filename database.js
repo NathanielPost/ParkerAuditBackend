@@ -17,8 +17,16 @@ const config = {
   password: process.env.DB_PASSWORD || 'ar[xN7GOq891+krl1',
   options: {
     encrypt: false,
-    trustServerCertificate: true
-  }
+    trustServerCertificate: true,
+    enableArithAbort: true
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000
+  },
+  connectionTimeout: 30000,
+  requestTimeout: 30000
 };
 
 console.log('🔧 Final config object:');
@@ -32,7 +40,10 @@ router.get('/accessIds_for_location', async (req, res) => {
     console.log(`🔍 Starting with locationCode: ${locationCode}`);
 
     try {
+        console.log('🔗 Attempting to connect to database...');
+        console.log('🔗 Connecting to server:', config.server);
         await sql.connect(config);
+        console.log('✅ Connected to database successfully');
         const request = new sql.Request();
         request.input('locationCode', sql.Int, parseInt(locationCode, 10));
 
@@ -146,6 +157,64 @@ router.get('/accessIds_for_location', async (req, res) => {
     } finally {
         await sql.close();
     }
+});
+
+router.get('/test-connection', async (req, res) => {
+  console.log('🧪 Test connection endpoint hit!');
+  console.log('🔧 Environment Variables Check:');
+  console.log('DB_SERVER:', process.env.DB_SERVER);
+  console.log('DB_DATABASE:', process.env.DB_DATABASE);
+  console.log('DB_USER:', process.env.DB_USER);
+  console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***REDACTED***' : 'NOT SET');
+  
+  console.log('🔧 Final config object:');
+  console.log('Server:', config.server);
+  console.log('Database:', config.database);
+  console.log('User:', config.user);
+  console.log('Password:', config.password ? '***SET***' : 'NOT SET');
+  
+  try {
+    console.log('🔗 Attempting to connect to database...');
+    console.log('🔗 Connecting to server:', config.server);
+    
+    // Try to connect
+    await sql.connect(config);
+    console.log('✅ Connected to database successfully');
+    
+    // Try a simple query
+    const result = await sql.query('SELECT 1 as test');
+    console.log('✅ Test query successful:', result.recordset);
+    
+    res.json({
+      success: true,
+      message: 'Database connection successful',
+      config: {
+        server: config.server,
+        database: config.database,
+        user: config.user
+      },
+      testQuery: result.recordset
+    });
+  } catch (err) {
+    console.error('💥 Connection test failed:', err.message);
+    console.error('💥 Full error:', err);
+    res.status(500).json({ 
+      error: 'Database connection test failed', 
+      details: err.message,
+      code: err.code,
+      config: {
+        server: config.server,
+        database: config.database,
+        user: config.user
+      }
+    });
+  } finally {
+    try {
+      await sql.close();
+    } catch (closeErr) {
+      console.error('Error closing connection:', closeErr);
+    }
+  }
 });
 
 router.get('/schema', async (req, res) => {
