@@ -3,6 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import sql from 'mssql';
 
+import dns from 'dns';
+import net from 'net';
+
 dotenv.config();
 
 const app = express();
@@ -20,6 +23,56 @@ const dbConfig = {
     multipleStatements: true     // Optional: only if you need it
   }
 };
+app.get('/api/diagnostics', async (req, res) => {
+  const server = process.env.DB_SERVER;
+  const port = 1433; // Default SQL Server port
+
+  // DNS lookup
+  dns.lookup(server, (err, address, family) => {
+    if (err) {
+      return res.json({
+        dns: `Failed to resolve ${server}: ${err.message}`,
+        tcp: 'Not checked (DNS failed)'
+      });
+    }
+
+    // TCP connection test
+    const socket = new net.Socket();
+    let tcpResult = 'Unknown error';
+    let responded = false;
+
+    socket.setTimeout(5000);
+    socket.on('connect', () => {
+      tcpResult = `Successfully connected to ${address}:${port}`;
+      responded = true;
+      socket.destroy();
+      res.json({
+        dns: `Resolved ${server} to ${address} (IPv${family})`,
+        tcp: tcpResult
+      });
+    });
+    socket.on('timeout', () => {
+      tcpResult = `Timeout connecting to ${address}:${port}`;
+      responded = true;
+      socket.destroy();
+      res.json({
+        dns: `Resolved ${server} to ${address} (IPv${family})`,
+        tcp: tcpResult
+      });
+    });
+    socket.on('error', (e) => {
+      if (!responded) {
+        tcpResult = `Error connecting to ${address}:${port} - ${e.message}`;
+        responded = true;
+        res.json({
+          dns: `Resolved ${server} to ${address} (IPv${family})`,
+          tcp: tcpResult
+        });
+      }
+    });
+    socket.connect(port, address);
+  });
+});
 
 // Healthcheck route
 app.get('/api/healthcheck', async (req, res) => {
