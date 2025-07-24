@@ -3,16 +3,29 @@ import sql from 'mssql';
 
 const router = express.Router();
 
+// Debug environment variables
+console.log('🔧 Environment Variables Check:');
+console.log('DB_SERVER:', process.env.DB_SERVER);
+console.log('DB_DATABASE:', process.env.DB_DATABASE);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_PASSWORD:', process.env.DB_PASSWORD ? '***REDACTED***' : 'NOT SET');
+
 const config = {
-  server: process.env.DB_SERVER,
-  database: process.env.DB_DATABASE,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER || 'lazdatawarehouse01.lazparking.com',
+  database: process.env.DB_DATABASE || 'Subscription',
+  user: process.env.DB_USER || 'subscription_writer',
+  password: process.env.DB_PASSWORD || 'ar[xN7GOq891+krl1',
   options: {
     encrypt: false,
     trustServerCertificate: true
   }
 };
+
+console.log('🔧 Final config object:');
+console.log('Server:', config.server);
+console.log('Database:', config.database);
+console.log('User:', config.user);
+console.log('Password:', config.password ? '***SET***' : 'NOT SET');
 
 router.get('/accessIds_for_location', async (req, res) => {
     const locationCode = req.query.locationCode;
@@ -142,6 +155,7 @@ router.get('/schema', async (req, res) => {
   
   try {
     console.log('🔗 Attempting to connect to database...');
+    console.log('🔗 Connecting to server:', config.server);
     await sql.connect(config);
     console.log('✅ Connected to database successfully');
 
