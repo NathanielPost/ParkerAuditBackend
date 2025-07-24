@@ -1,7 +1,9 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const sql = require('mssql');
+import dotenv from 'dotenv';
+import express from 'express';
+import cors from 'cors';
+import sql from 'mssql';
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
